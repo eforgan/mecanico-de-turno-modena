@@ -7,6 +7,7 @@ import { useAppStore } from "@/hooks/useAppStore";
 import { getClosestBase, haversineDistance } from "@/lib/locationUtils";
 import { useEffect, useState } from "react";
 import SunCalc from "suncalc";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
   const currentBase = useAppStore((state) => state.currentBase);
@@ -14,8 +15,21 @@ export default function Home() {
   const weather = useAppStore((state) => state.weather);
   const updateInspectionState = useAppStore((state) => state.updateInspectionState);
   const [gpsStatus, setGpsStatus] = useState("Detectando ubicación...");
+  const [userName, setUserName] = useState("Inspector");
 
   useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        const namePart = user.email.split('@')[0];
+        const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        setUserName(capitalizedName);
+        updateInspectionState({ inspectorName: capitalizedName });
+      }
+    };
+    fetchUser();
+    
     const fetchWeather = async (lat: number, lng: number, baseId?: string) => {
       try {
         const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&daily=sunrise,sunset&timezone=auto`);
@@ -112,8 +126,8 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl font-semibold mb-2">Bienvenido, Inspector</h2>
-            <p className="text-gray-400">Seleccione una opción para comenzar su turno operativo.</p>
+            <h2 className="text-3xl font-semibold mb-2">Bienvenido, {userName}</h2>
+            <p className="text-gray-400">¿Qué inspeccionamos hoy?</p>
           </motion.div>
         </section>
 
